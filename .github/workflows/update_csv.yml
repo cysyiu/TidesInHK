@@ -33,6 +33,10 @@ jobs:
             curl -s -o data/TIDE_${i}.csv "${urls[$i]}"
           done
 
+      - name: Update GeoJSON to point to local CSV files
+        run: |
+          python update_geojson.py
+      
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,3 +47,5 @@ jobs:
           git commit -m "Auto-update tide CSV data" || echo "No changes to commit"
           git pull --rebase
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:${{ github.ref }}
+
+          
