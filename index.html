@@ -1,137 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>3D Sea Level Surface over Hong Kong</title>
-    <!-- Include Cesium CSS/JS -->
-    <link
-      href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css"
-      rel="stylesheet"
-    />
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Cesium.js"></script>
+<html>
+<head>
+  <title>Tide Stations Map</title>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 600px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
 
-    <!-- Include the kriging.js library -->
-    <script src="path/to/kriging.js"></script>
+  <!-- Include Leaflet JS library -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Include Papa Parse library for CSV parsing -->
+  <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
+  <script>
+    // Initialize the map centered over Hong Kong
+    var map = L.map('map').setView([22.3, 114.2], 11);
 
-    <style>
-      html,
-      body,
-      #cesiumContainer {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="cesiumContainer"></div>
-    <script>
-      // Initialize Cesium viewer with 3D mode.
-      var viewer = new Cesium.Viewer("cesiumContainer", {
-        terrainProvider: Cesium.createWorldTerrain(),
-      });
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-      // *** STEP 1: Load & parse your tide CSV data ***
-      // (Here we hard-code sample data from your CSV for demonstration.)
-      var tideData = [
-        { lon: 114.2133333, lat: 22.2911111, height: 1.82 },
-        { lon: 113.8944444, lat: 22.2202778, height: 1.65 },
-        { lon: 114.0141667, lat: 22.4872222, height: 1.75 },
-        { lon: 114.2886111, lat: 22.2697222, height: 1.88 },
-        { lon: 114.1838889, lat: 22.4425, height: 1.80 },
-        { lon: 113.8655556, lat: 22.255, height: 1.70 },
-        { lon: 114.3027778, lat: 22.1830556, height: 1.90 },
-      ];
+    // Load the GeoJSON file
+    fetch('tide_stations.geojson')
+      .then(response => response.json())
+      .then(data => {
+        L.geoJSON(data, {
+          onEachFeature: function (feature, layer) {
+            layer.bindPopup("<strong>" + feature.properties.TideStation_en + "</strong><br/>Click for tide data");
+            // When a marker is clicked, fetch and display CSV data
+            layer.on('click', function() {
+              // Get the CSV URL from the GeoJSON property
+              var csvUrl = feature.properties.Data_url;
+              fetch(csvUrl)
+                .then(response => response.text())
+                .then(csvText => {
+                  // Parse the CSV using Papa Parse
+                  var results = Papa.parse(csvText, {header: true});
+                  var html = "<strong>" + feature.properties.TideStation_en + " Tide Data:</strong><br/><table border='1' cellpadding='4'><tr>";
+                  
+                  // If there are any rows, build a sample table display
+                  if (results.data.length > 0) {
+                    // Create table headers from the first row keys
+                    Object.keys(results.data[0]).forEach(function(key) {
+                      html += "<th>" + key + "</th>";
+                    });
+                    html += "</tr>";
 
-      // *** STEP 2: Setup kriging interpolation ***
-      var t = []; // tide height values
-      var x = []; // longitude values
-      var y = []; // latitude values
-
-      tideData.forEach(function (pt) {
-        x.push(pt.lon);
-        y.push(pt.lat);
-        t.push(pt.height);
-      });
-
-      // Train the kriging model. The variogram model ('exponential') and
-      // parameters (nugget=0, range=100 - adjust as needed) can be tuned.
-      var model = kriging.train(t, x, y, "exponential", 0, 100);
-
-      // *** STEP 3: Define grid bounds (covering Hong Kong) and resolution ***
-      // Adjust these bounds as necessary.
-      var minLon = 113.8,
-        maxLon = 114.5,
-        minLat = 22.1,
-        maxLat = 22.6;
-      var gridRows = 50,
-        gridCols = 50;
-      var dLon = (maxLon - minLon) / (gridCols - 1);
-      var dLat = (maxLat - minLat) / (gridRows - 1);
-
-      // Prepare arrays to hold positions (Cartesian3) for the grid.
-      var positions = []; // for a triangulated grid surface, you'll build triangles.
-
-      // For demonstration we create grid lines based on the interpolated heights.
-      // In a complete solution you might generate a mesh (using a Delaunay triangulation, for example).
-      // Here, we create two sets of polylines: one set for rows and one for columns.
-      for (var i = 0; i < gridRows; i++) {
-        var rowPositions = [];
-        for (var j = 0; j < gridCols; j++) {
-          var lon = minLon + j * dLon;
-          var lat = minLat + i * dLat;
-          var h = kriging.predict(lon, lat, model); // in meters (water level)
-          // Using the height as the elevation offset. You might need additional scaling.
-          var cartPos = Cesium.Cartesian3.fromDegrees(lon, lat, h);
-          rowPositions.push(cartPos);
-        }
-        viewer.entities.add({
-          polyline: {
-            positions: rowPositions,
-            width: 2,
-            material: Cesium.Color.BLUE.withAlpha(0.5),
-          },
-        });
-      }
-      for (var j = 0; j < gridCols; j++) {
-        var colPositions = [];
-        for (var i = 0; i < gridRows; i++) {
-          var lon = minLon + j * dLon;
-          var lat = minLat + i * dLat;
-          var h = kriging.predict(lon, lat, model);
-          var cartPos = Cesium.Cartesian3.fromDegrees(lon, lat, h);
-          colPositions.push(cartPos);
-        }
-        viewer.entities.add({
-          polyline: {
-            positions: colPositions,
-            width: 2,
-            material: Cesium.Color.BLUE.withAlpha(0.5),
-          },
-        });
-      }
-
-      // *** STEP 4: (Optional) Create a surface mesh ***
-      // Creating a proper surface (a triangulated irregular network, or TIN)
-      // is more advanced. You could use libraries such as Delaunay triangulation (e.g., d3-delaunay)
-      // to construct triangles from your grid data, then create a Cesium.GeometryInstance with those triangles.
-      // That approach would yield a continuous 3D surface mesh of the sea level over Hong Kong.
-      //
-      // For example, after triangulating the grid, you could do:
-      // viewer.scene.primitives.add( new Cesium.Primitive({
-      //    geometryInstances: new Cesium.GeometryInstance({
-      //       geometry: new Cesium.CustomMeshGeometry({ ... vertices, indices ... }),
-      //       attributes: { color: Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.CYAN.withAlpha(0.3)) }
-      //    }),
-      //    appearance: new Cesium.MaterialAppearance({ material: Cesium.Material.fromType('Color') })
-      // }));
-
-      // Finally, adjust the camera to focus on Hong Kong
-      viewer.camera.flyTo({
-        destination: Cesium.Rectangle.fromDegrees(minLon, minLat, maxLon, maxLat),
-      });
-    </script>
-  </body>
+                    // Display the first few rows (for instance, first 3 rows)
+                    results.data.slice(0, 3).forEach(function(row) {
+                      html += "<tr>";
+                      Object.values(row).forEach(function(val) {
+                        html += "<td>" + val + "</td>";
+                      });
+                      html += "</tr>";
+                    });
+                    html += "</table><br/><em>Showing first 3 rows.</em>";
+                  } else {
+                    html = "No CSV data available";
+                  }
+                  // Update popup with the CSV data table.
+                  layer.getPopup().setContent(html).openOn(map);
+                })
+                .catch(err => {
+                  console.error("Error loading CSV: ", err);
+                  layer.getPopup().setContent("Error loading CSV data.").openOn(map);
+                });
+            });
+          }
+        }).addTo(map);
+      })
+      .catch(err => console.error("Error loading GeoJSON: ", err));
+  </script>
+</body>
 </html>
