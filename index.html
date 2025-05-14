@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     #map { height: 600px; }
-    /* Constrain the popup table's width and allow horizontal scrolling */
+    /* Constrain the vertical table popup styling */
     .popup-table-container {
       max-width: 400px;
       overflow-x: auto;
@@ -19,8 +19,12 @@
     .popup-table-container td {
       border: 1px solid #ccc;
       padding: 4px;
-      text-align: center;
+      text-align: left;
       font-size: 0.9em;
+    }
+    .popup-table-container th {
+      background-color: #f0f0f0;
+      width: 35%;
     }
   </style>
 </head>
@@ -32,10 +36,10 @@
   <!-- Include Papa Parse library for CSV parsing -->
   <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
-    // Initialize the map centered over Hong Kong
+    // Initialize the map centered over Hong Kong.
     var map = L.map('map').setView([22.3, 114.2], 11);
 
-    // Add OpenStreetMap tile layer
+    // Add OpenStreetMap tile layer.
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -46,20 +50,21 @@
       .then(data => {
         L.geoJSON(data, {
           onEachFeature: function (feature, layer) {
-            // Bind a basic popup prompting user to click to load tide data.
+            // Bind a basic popup prompting the user to click to load tide data.
             layer.bindPopup("<strong>" + feature.properties.TideStation_en + "</strong><br/>Click for tide data");
             
-            // When marker is clicked, fetch the CSV data.
+            // When the marker is clicked, fetch the CSV data.
             layer.on('click', function() {
               var csvUrl = feature.properties.Data_url;
               fetch(csvUrl)
                 .then(response => response.text())
                 .then(csvText => {
                   // Parse the CSV content with header row.
-                  var results = Papa.parse(csvText, {header: true});
-                  // Define which columns to show in the popup.
+                  var results = Papa.parse(csvText, { header: true });
+                  
+                  // Define which key fields to show.
                   var keysToShow = [
-                    "Tide Station", 
+                    //"Tide Station", 
                     "Datetime (Year)", 
                     "Datetime (Month)", 
                     "Datetime (Day)", 
@@ -68,25 +73,25 @@
                     "Height(m)"
                   ];
                   
-                  // Build a simplified table.
+                  // Build vertical (reversed) table(s). In this example, we show only the first record.
                   var html = "<div class='popup-table-container'><strong>" 
                       + feature.properties.TideStation_en 
-                      + " Tide Data:</strong><br/><table><tr>";
-                  // Add table headers.
-                  keysToShow.forEach(function(key) {
-                    html += "<th>" + key + "</th>";
-                  });
-                  html += "</tr>";
+                      + " Tide Data:</strong><br/>";
                   
-                  // Show only the first 3 rows for brevity.
-                  results.data.slice(0, 3).forEach(function(row) {
-                    html += "<tr>";
+                  if (results.data.length > 0) {
+                    // Here we convert the first CSV record into a vertical table.
+                    var row = results.data[0];
+                    html += "<table><tbody>";
                     keysToShow.forEach(function(key) {
-                      html += "<td>" + (row[key] || "") + "</td>";
+                      html += "<tr><th>" + key + "</th><td>" + (row[key] || "") + "</td></tr>";
                     });
-                    html += "</tr>";
-                  });
-                  html += "</table><br/><em>Showing first 3 rows.</em></div>";
+                    html += "</tbody></table>";
+                  }
+                  else {
+                    html += "No CSV data available.";
+                  }
+                  
+                  html += "<br/><em>Showing first record.</em></div>";
                   // Update the popup content.
                   layer.getPopup().setContent(html).openOn(map);
                 })
