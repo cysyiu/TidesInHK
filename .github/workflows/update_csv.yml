@@ -1,0 +1,40 @@
+name: Update Tide Data
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour; adjust as needed.
+  workflow_dispatch:      # Allow manual trigger
+
+jobs:
+  update-csv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Create data folder if not exists
+        run: mkdir -p data
+
+      - name: Update CSV files
+        run: |
+          declare -a urls=(
+            "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_0.csv"
+            "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_1.csv"
+            "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_2.csv"
+            "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_3.csv"
+            "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_4.csv"
+            "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_5.csv"
+            "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_6.csv"
+          )
+          for i in "${!urls[@]}"; do
+            echo "Fetching ${urls[$i]}"
+            curl -s -o data/TIDE_${i}.csv "${urls[$i]}"
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add data/TIDE_*.csv
+          git commit -m "Auto-update tide CSV data" || echo "No changes to commit"
+          git push
