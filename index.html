@@ -11,7 +11,10 @@
 <body>
   <div id="map"></div>
 
+  <!-- Include Leaflet JS library -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Include Papa Parse library for CSV parsing -->
+  <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
     // Initialize the map centered over Hong Kong
     var map = L.map('map').setView([22.3, 114.2], 11);
@@ -21,19 +24,56 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Load the tide stations GeoJSON file and add markers
+    // Load the GeoJSON file
     fetch('tide_stations.geojson')
       .then(response => response.json())
       .then(data => {
         L.geoJSON(data, {
           onEachFeature: function (feature, layer) {
-            var popupContent = "<strong>" + feature.properties.TideStation_en + "</strong><br/>" +
-                               "Data URL: <a target='_blank' href='" + feature.properties.Data_url + "'>" + feature.properties.Data_url + "</a>";
-            layer.bindPopup(popupContent);
+            layer.bindPopup("<strong>" + feature.properties.TideStation_en + "</strong><br/>Click for tide data");
+            // When a marker is clicked, fetch and display CSV data
+            layer.on('click', function() {
+              // Get the CSV URL from the GeoJSON property
+              var csvUrl = feature.properties.Data_url;
+              fetch(csvUrl)
+                .then(response => response.text())
+                .then(csvText => {
+                  // Parse the CSV using Papa Parse
+                  var results = Papa.parse(csvText, {header: true});
+                  var html = "<strong>" + feature.properties.TideStation_en + " Tide Data:</strong><br/><table border='1' cellpadding='4'><tr>";
+                  
+                  // If there are any rows, build a sample table display
+                  if (results.data.length > 0) {
+                    // Create table headers from the first row keys
+                    Object.keys(results.data[0]).forEach(function(key) {
+                      html += "<th>" + key + "</th>";
+                    });
+                    html += "</tr>";
+
+                    // Display the first few rows (for instance, first 3 rows)
+                    results.data.slice(0, 3).forEach(function(row) {
+                      html += "<tr>";
+                      Object.values(row).forEach(function(val) {
+                        html += "<td>" + val + "</td>";
+                      });
+                      html += "</tr>";
+                    });
+                    html += "</table><br/><em>Showing first 3 rows.</em>";
+                  } else {
+                    html = "No CSV data available";
+                  }
+                  // Update popup with the CSV data table.
+                  layer.getPopup().setContent(html).openOn(map);
+                })
+                .catch(err => {
+                  console.error("Error loading CSV: ", err);
+                  layer.getPopup().setContent("Error loading CSV data.").openOn(map);
+                });
+            });
           }
         }).addTo(map);
       })
-      .catch(err => console.error(err));
+      .catch(err => console.error("Error loading GeoJSON: ", err));
   </script>
 </body>
 </html>
