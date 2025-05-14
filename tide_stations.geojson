@@ -6,10 +6,13 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [114.2133333, 22.2911111]
+        "coordinates": [
+          114.2133333,
+          22.2911111
+        ]
       },
       "properties": {
-        "Data_url": "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_0.csv",
+        "Data_url": "data/TIDE_0.csv",
         "TideStation_en": "Quarry Bay",
         "TideStation_sc": "鰂鱼涌",
         "TideStation_uc": "鰂魚涌"
@@ -19,10 +22,13 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [113.8944444, 22.2202778]
+        "coordinates": [
+          113.8944444,
+          22.2202778
+        ]
       },
       "properties": {
-        "Data_url": "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_1.csv",
+        "Data_url": "data/TIDE_1.csv",
         "TideStation_en": "Shek Pik",
         "TideStation_sc": "石壁",
         "TideStation_uc": "石壁"
@@ -32,10 +38,13 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [114.0141667, 22.4872222]
+        "coordinates": [
+          114.0141667,
+          22.4872222
+        ]
       },
       "properties": {
-        "Data_url": "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_2.csv",
+        "Data_url": "data/TIDE_2.csv",
         "TideStation_en": "Tsim Bei Tsui",
         "TideStation_sc": "尖鼻咀",
         "TideStation_uc": "尖鼻咀"
@@ -45,10 +54,13 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [114.2886111, 22.2697222]
+        "coordinates": [
+          114.2886111,
+          22.2697222
+        ]
       },
       "properties": {
-        "Data_url": "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_3.csv",
+        "Data_url": "data/TIDE_3.csv",
         "TideStation_en": "Tai Miu Wan",
         "TideStation_sc": "大庙湾",
         "TideStation_uc": "大廟灣"
@@ -58,10 +70,13 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [114.1838889, 22.4425]
+        "coordinates": [
+          114.1838889,
+          22.4425
+        ]
       },
       "properties": {
-        "Data_url": "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_4.csv",
+        "Data_url": "data/TIDE_4.csv",
         "TideStation_en": "Tai Po Kau",
         "TideStation_sc": "大埔滘",
         "TideStation_uc": "大埔滘"
@@ -71,10 +86,13 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [113.8655556, 22.255]
+        "coordinates": [
+          113.8655556,
+          22.255
+        ]
       },
       "properties": {
-        "Data_url": "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_5.csv",
+        "Data_url": "data/TIDE_5.csv",
         "TideStation_en": "Tai O",
         "TideStation_sc": "大澳",
         "TideStation_uc": "大澳"
@@ -84,10 +102,13 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [114.3027778, 22.1830556]
+        "coordinates": [
+          114.3027778,
+          22.1830556
+        ]
       },
       "properties": {
-        "Data_url": "https://data.weather.gov.hk/weatherAPI/hko_data/csdi/dataset/TIDE_6.csv",
+        "Data_url": "data/TIDE_6.csv",
         "TideStation_en": "Waglan Island",
         "TideStation_sc": "横澜岛",
         "TideStation_uc": "橫瀾島"
