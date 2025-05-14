@@ -6,6 +6,22 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     #map { height: 600px; }
+    /* Constrain the popup table's width and allow horizontal scrolling */
+    .popup-table-container {
+      max-width: 400px;
+      overflow-x: auto;
+    }
+    .popup-table-container table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .popup-table-container th,
+    .popup-table-container td {
+      border: 1px solid #ccc;
+      padding: 4px;
+      text-align: center;
+      font-size: 0.9em;
+    }
   </style>
 </head>
 <body>
@@ -24,45 +40,54 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Load the GeoJSON file
+    // Load the GeoJSON file containing tide station markers.
     fetch('tide_stations.geojson')
       .then(response => response.json())
       .then(data => {
         L.geoJSON(data, {
           onEachFeature: function (feature, layer) {
+            // Bind a basic popup prompting user to click to load tide data.
             layer.bindPopup("<strong>" + feature.properties.TideStation_en + "</strong><br/>Click for tide data");
-            // When a marker is clicked, fetch and display CSV data
+            
+            // When marker is clicked, fetch the CSV data.
             layer.on('click', function() {
-              // Get the CSV URL from the GeoJSON property
               var csvUrl = feature.properties.Data_url;
               fetch(csvUrl)
                 .then(response => response.text())
                 .then(csvText => {
-                  // Parse the CSV using Papa Parse
+                  // Parse the CSV content with header row.
                   var results = Papa.parse(csvText, {header: true});
-                  var html = "<strong>" + feature.properties.TideStation_en + " Tide Data:</strong><br/><table border='1' cellpadding='4'><tr>";
+                  // Define which columns to show in the popup.
+                  var keysToShow = [
+                    "Tide Station", 
+                    "Datetime (Year)", 
+                    "Datetime (Month)", 
+                    "Datetime (Day)", 
+                    "Datetime (Hour)", 
+                    "Datetime (Minute)", 
+                    "Height(m)"
+                  ];
                   
-                  // If there are any rows, build a sample table display
-                  if (results.data.length > 0) {
-                    // Create table headers from the first row keys
-                    Object.keys(results.data[0]).forEach(function(key) {
-                      html += "<th>" + key + "</th>";
+                  // Build a simplified table.
+                  var html = "<div class='popup-table-container'><strong>" 
+                      + feature.properties.TideStation_en 
+                      + " Tide Data:</strong><br/><table><tr>";
+                  // Add table headers.
+                  keysToShow.forEach(function(key) {
+                    html += "<th>" + key + "</th>";
+                  });
+                  html += "</tr>";
+                  
+                  // Show only the first 3 rows for brevity.
+                  results.data.slice(0, 3).forEach(function(row) {
+                    html += "<tr>";
+                    keysToShow.forEach(function(key) {
+                      html += "<td>" + (row[key] || "") + "</td>";
                     });
                     html += "</tr>";
-
-                    // Display the first few rows (for instance, first 3 rows)
-                    results.data.slice(0, 3).forEach(function(row) {
-                      html += "<tr>";
-                      Object.values(row).forEach(function(val) {
-                        html += "<td>" + val + "</td>";
-                      });
-                      html += "</tr>";
-                    });
-                    html += "</table><br/><em>Showing first 3 rows.</em>";
-                  } else {
-                    html = "No CSV data available";
-                  }
-                  // Update popup with the CSV data table.
+                  });
+                  html += "</table><br/><em>Showing first 3 rows.</em></div>";
+                  // Update the popup content.
                   layer.getPopup().setContent(html).openOn(map);
                 })
                 .catch(err => {
