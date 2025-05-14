@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cesium Tide Stations Map</title>
+  <meta charset="utf-8" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/latest/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/latest/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <style>
+    #cesiumContainer { width: 100%; height: 600px; }
+    .popup-box {
+      position: absolute;
+      background-color: white;
+      border: 1px solid black;
+      padding: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  <div id="popupBox" class="popup-box"></div>
+
+  <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
+  <script>
+    // Initialize Cesium Viewer
+    var viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: Cesium.createWorldTerrain(),
+      homeButton: false,
+      sceneModePicker: false
+    });
+
+    // Load GeoJSON tide station data
+    Cesium.GeoJsonDataSource.load('./tide_stations.geojson').then(function(dataSource) {
+      viewer.dataSources.add(dataSource);
+
+      var entities = dataSource.entities.values;
+      for (var i = 0; i < entities.length; i++) {
+        var entity = entities[i];
+        entity.billboard = new Cesium.BillboardGraphics({
+          image: 'https://upload.wikimedia.org/wikipedia/commons/8/88/Tide_icon.png',
+          scale: 0.5
+        });
+
+        // Attach click event to fetch tide data
+        entity.description = "Click to load tide data...";
+        entity.position = entity.position.getValue(Cesium.JulianDate.now());
+
+        viewer.screenSpaceEventHandler.setInputAction(function onClick(movement) {
+          var pickedObject = viewer.scene.pick(movement.position);
+          if (Cesium.defined(pickedObject) && Cesium.defined(pickedObject.id)) {
+            var csvUrl = pickedObject.id.properties.Data_url.getValue();
+            fetch(csvUrl)
+              .then(response => response.text())
+              .then(csvText => {
+                var results = Papa.parse(csvText, { header: true });
+                var popupBox = document.getElementById("popupBox");
+                popupBox.style.left = movement.position.x + "px";
+                popupBox.style.top = movement.position.y + "px";
+                popupBox.innerHTML = "<strong>" + pickedObject.id.properties.TideStation_en.getValue() + " Tide Data</strong><br/>";
+
+                if (results.data.length > 0) {
+                  var row = results.data[0];
+                  popupBox.innerHTML += "<table><tbody>";
+                  ["Datetime (Year)", "Datetime (Month)", "Datetime (Day)", "Datetime (Hour)", "Datetime (Minute)", "Height(m)"]
+                    .forEach(function(key) {
+                      popupBox.innerHTML += "<tr><th>" + key + "</th><td>" + (row[key] || "") + "</td></tr>";
+                    });
+                  popupBox.innerHTML += "</tbody></table>";
+                } else {
+                  popupBox.innerHTML += "No data available.";
+                }
+
+                popupBox.style.display = "block";
+              });
+          }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      }
+    });
+
+    // Hide popup on mouse move
+    viewer.screenSpaceEventHandler.setInputAction(function() {
+      document.getElementById("popupBox").style.display = "none";
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+  </script>
+</body>
+</html>
